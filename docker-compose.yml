@@ -1,0 +1,25 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: api-gateway-redis
+    ports:
+      - "6379:6379"
+
+  api-gateway:
+    build: .
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev-secret-change-me
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      PRODUCT_SERVICE_URL: http://product-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
+      MEDIA_SERVICE_URL: http://media-service:8085
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+    depends_on:
+      - redis

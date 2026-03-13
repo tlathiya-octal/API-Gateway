@@ -1,0 +1,94 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 2000
+        response-timeout: 5s
+      metrics:
+        enabled: true
+    loadbalancer:
+      retry:
+        enabled: true
+    discovery:
+      client:
+        simple:
+          instances:
+            auth-service:
+              - uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+            user-service:
+              - uri: ${USER_SERVICE_URL:http://localhost:8082}
+            product-service:
+              - uri: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+            order-service:
+              - uri: ${ORDER_SERVICE_URL:http://localhost:8084}
+            media-service:
+              - uri: ${MEDIA_SERVICE_URL:http://localhost:8085}
+            payment-service:
+              - uri: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+            notification-service:
+              - uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-change-me}
+    jwk-set-uri: ${JWT_JWK_SET_URI:}
+    issuer: ${JWT_ISSUER:}
+  public-paths: /api/auth/**,/auth/**,/actuator/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**,/fallback/**
+
+gateway:
+  rate-limit:
+    login:
+      replenish-rate: 1
+      burst-capacity: 60
+      requested-tokens: 12
+    register:
+      replenish-rate: 1
+      burst-capacity: 60
+      requested-tokens: 20
+    default-limit:
+      replenish-rate: 1
+      burst-capacity: 60
+      requested-tokens: 3
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui
+    urls:
+      - name: auth-service
+        url: /auth/v3/api-docs
+      - name: user-service
+        url: /users/v3/api-docs
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: INFO
+    com.ecommerce.gateway: INFO
