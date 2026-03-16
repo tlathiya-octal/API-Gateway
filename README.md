@@ -16,30 +16,30 @@ Production-ready API Gateway for the E-Commerce platform built with Spring Boot 
 ```
 api-gateway
 +-- src/main/java/com/ecommerce/gateway
-¦   +-- config
-¦   +-- filter
-¦   +-- ratelimit
-¦   +-- exception
-¦   +-- route
-¦   +-- ApiGatewayApplication.java
+ï¿½   +-- config
+ï¿½   +-- filter
+ï¿½   +-- ratelimit
+ï¿½   +-- exception
+ï¿½   +-- route
+ï¿½   +-- ApiGatewayApplication.java
 +-- src/main/resources
-¦   +-- application.yml
-¦   +-- logback-spring.xml
+ï¿½   +-- application.yml
+ï¿½   +-- logback-spring.xml
 +-- Dockerfile
 +-- docker-compose.yml
-+-- build.gradle
++-- pom.xml
 +-- README.md
 ```
 
 ## Run Locally
 ### Build
 ```
-./gradlew bootJar
+mvn clean package
 ```
 
 ### Run
 ```
-./gradlew bootRun
+mvn spring-boot:run
 ```
 
 ## Run With Docker

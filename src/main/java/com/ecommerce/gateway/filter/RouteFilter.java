@@ -1,118 +1,92 @@
 package com.ecommerce.gateway.filter;
 
-import com.netflix.zuul.ZuulFilter;
-import com.netflix.zuul.context.RequestContext;
-import com.netflix.zuul.exception.ZuulException;
-import com.octal.fsm.repositories.AllowedSuffixesRepository;
-import com.octal.fsm.utils.TextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
-import org.springframework.stereotype.Component;
+import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.List;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-@Component
-public class RouteFilter extends ZuulFilter {
-    private static Logger log = LoggerFactory.getLogger(RouteFilter.class);
-
-    private final LoadBalancerClient loadBalancerClient;
-
-    @Override
-    public boolean shouldFilter() {
-        RequestContext ctx = RequestContext.getCurrentContext();
-        HttpServletRequest request = ctx.getRequest();
-        String requestURI = request.getRequestURI();
-        List<String> allowedSuffixes = allowedSuffixesRepository.getUrlSuffix();
-//        boolean matched = allowedSuffixes.stream().anyMatch(suffix ->
-//                Pattern.compile(suffix).matcher(requestURI).find());
-
-//        if (matched) {
-//            log.info("Matched");
-//        } else {
-//            log.info("Not Matched");
+public class RouteFilter{ }
+//public class RouteFilter implements GlobalFilter {
+//
+//    private static final Logger log = LoggerFactory.getLogger(RouteFilter.class);
+//
+//    private final ReactiveDiscoveryClient discoveryClient;
+//
+//    public RouteFilter(ReactiveDiscoveryClient discoveryClient) {
+//        this.discoveryClient = discoveryClient;
+//    }
+//
+//    @Override
+//    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+//
+//        // 1. Equivalent to Zuul's shouldFilter() path matching logic
+//        String requestURI = exchange.getRequest().getURI().getPath();
+//
+//        // 2. Extract current targeted Route URI (e.g., lb://user-service)
+//        URI routeUri = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
+//
+//        // If it's not a load-balanced route, just continue the chain
+//        if (routeUri == null || !"lb".equals(routeUri.getScheme())) {
+//            return chain.filter(exchange);
 //        }
-        return false;
-    }
-
-    private final DiscoveryClient discoveryClient;
-    private final AllowedSuffixesRepository allowedSuffixesRepository;
-
-    public RouteFilter(LoadBalancerClient loadBalancerClient, DiscoveryClient discoveryClient, AllowedSuffixesRepository allowedSuffixesRepository) {
-        this.loadBalancerClient = loadBalancerClient;
-        this.discoveryClient = discoveryClient;
-        this.allowedSuffixesRepository = allowedSuffixesRepository;
-    }
-
-    @Override
-    public Object run() throws ZuulException {
-
-        RequestContext ctx = RequestContext.getCurrentContext();
-        String currentServiceId = (String) ctx.get("serviceId");
-        if (!TextUtils.isEmpty(currentServiceId)) {
-            ServiceInstance instance = loadBalancerClient.choose(currentServiceId);
-            if (instance != null) {
-                String resolvedHost = instance.getHost();
-                int resolvedPort = instance.getPort();
-                System.out.println("Zuul resolved " + currentServiceId + " to: " + resolvedHost + ":" + resolvedPort);
-            } else {
-                System.out.println("No instance found for service ID: " + currentServiceId);
-            }
-            if (currentServiceId.equalsIgnoreCase("user-service")) {
-                // Check if user-service-read is registered
-                List<ServiceInstance> userInstances = discoveryClient.getInstances("user-service-read");
-                if (userInstances != null && !userInstances.isEmpty()) {
-                    log.info("Request Forwarding To User Read....");
-//                    ctx.set("serviceId", "user-service-read"); // Redirect to user-service-read
-                } else {
-                    log.info("Request Forwarding to User Write....");
-                    ctx.set("serviceId", "user-service"); // Fallback to actual destination service
-                }
-            } else if (currentServiceId.equalsIgnoreCase("admin-service")) {
-                List<ServiceInstance> userInstances = discoveryClient.getInstances("admin-service-read");
-                if (userInstances != null && !userInstances.isEmpty()) {
-                    log.info("Request Forwarding To Admin Read....");
-//                    ctx.set("serviceId", "admin-service-read"); // Redirect to user-service-read
-                } else {
-                    log.info("Request Forwarding to Admin Write....");
-                    ctx.set("serviceId", "admin-service"); // Fallback to actual destination service
-                }
-            } else if (currentServiceId.equalsIgnoreCase("live-radio")) {
-                List<ServiceInstance> radioInstances = discoveryClient.getInstances("live-radio-read-service");
-                if (radioInstances != null && !radioInstances.isEmpty()) {
-                    log.info("Request Forwarding To Radio Read....");
-                    ctx.set("serviceId", "live-radio-read-service"); // Redirect to user-service-read
-                } else {
-                    log.info("Request Forwarding to User Write....");
-                    ctx.set("serviceId", "live-radio"); // Fallback to actual destination service
-                }
-            } else if (currentServiceId.equalsIgnoreCase("podcast-service")) {
-                List<ServiceInstance> radioInstances = discoveryClient.getInstances("podcast-read-service");
-                if (radioInstances != null && !radioInstances.isEmpty()) {
-                    log.info("Request Forwarding To Podcast Read....");
-                    ctx.set("serviceId", "podcast-read-service"); // Redirect to user-service-read
-                } else {
-                    log.info("Request Forwarding to Podcast Write....");
-                    ctx.set("serviceId", "podcast-service"); // Fallback to actual destination service
-                }
-            }
-        }
-
-        ctx.setRouteHost(null); // Ensures routing via service discovery
-        return null;
-    }
-
-    @Override
-    public String filterType() {
-        return "route";
-    }
-
-    @Override
-    public int filterOrder() {
-        return 1;
-    }
-
-}
+//
+//        String currentServiceId = routeUri.getHost(); // Extracts 'user-service'
+//        String targetReadReplicaId = getReadReplicaId(currentServiceId);
+//
+//        if (targetReadReplicaId != null) {
+//            // 3. Asynchronously (non-blocking) check if the read replica exists
+//            return discoveryClient.getInstances(targetReadReplicaId)
+//                    .collectList()
+//                    .flatMap(instances -> {
+//                        if (instances != null && !instances.isEmpty()) {
+//                            log.info("Request Forwarding To {} Read....", currentServiceId);
+//                            // 4. Mutate the route URI to point to the read replica
+//                            mutateRouteUri(exchange, routeUri, targetReadReplicaId);
+//                        } else {
+//                            log.info("Request Forwarding to {} Write (No read replicas available)....", currentServiceId);
+//                        }
+//
+//                        // Proceed with the updated or original exchange
+//                        return chain.filter(exchange);
+//                    });
+//        }
+//
+//        return chain.filter(exchange);
+//    }
+//
+//    /**
+//     * Determines the corresponding read replica service ID based on the incoming service ID.
+//     */
+//    private String getReadReplicaId(String serviceId) {
+//        if (serviceId == null) return null;
+//
+//        return switch (serviceId.toLowerCase()) {
+//            case "user-service" -> "user-service-read";
+//            case "admin-service" -> "admin-service-read";
+//            case "live-radio" -> "live-radio-read-service";
+//            case "podcast-service" -> "podcast-read-service";
+//            default -> null;
+//        };
+//    }
+//
+//    /**
+//     * Updates the GATEWAY_REQUEST_URL_ATTR so the subsequent LoadBalancer filter
+//     * resolves the new service ID instead of the original one.
+//     */
+//    private void mutateRouteUri(ServerWebExchange exchange, URI originalUri, String newServiceId) {
+//        try {
+//            URI newUri = new URI(originalUri.getScheme(), newServiceId, originalUri.getPath(),
+//                    originalUri.getQuery(), originalUri.getFragment());
+//            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, newUri);
+//        } catch (URISyntaxException e) {
+//            log.error("Error formatting new route URI for read replica: {}", newServiceId, e);
+//        }
+//    }
+//}

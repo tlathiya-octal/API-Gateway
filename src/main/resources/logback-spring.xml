@@ -1,15 +1,94 @@
-<configuration>
-    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="api-gateway" />
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  logback-spring.xml — API Gateway
+  ════════════════════════════════════════════════════════════════════════════
+  Every log line carries:
+    • ISO-8601 timestamp with milliseconds
+    • Colour-coded level (console only)
+    • Thread
+    • correlationId from MDC  ← propagated by CorrelationIdFilter
+    • Abbreviated logger name
+    • Message + exception
 
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg correlationId=%X{correlationId} app=%property{appName}%n"/>
+  Appenders:
+    CONSOLE  — coloured, always active
+    FILE     — plain text, active outside local/default profiles
+               Rolls daily or at 50 MB; 30-day / 1 GB cap
+-->
+<configuration scan="true" scanPeriod="30 seconds">
 
+    <!-- ── Spring property binding ─────────────────────────────────────────── -->
+    <springProperty scope="context" name="APP_NAME"
+                    source="spring.application.name" defaultValue="api-gateway"/>
+
+    <!-- ── Properties ─────────────────────────────────────────────────────── -->
+    <property name="LOG_DIR"        value="logs"/>
+    <property name="MAX_HISTORY"    value="30"/>
+    <property name="MAX_FILE_SIZE"  value="50MB"/>
+    <property name="TOTAL_SIZE_CAP" value="1GB"/>
+
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan([CID:%X{correlationId:-n/a}]) [%yellow(${APP_NAME})] %logger{36} - %msg%n%ex"/>
+
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [CID:%X{correlationId:-n/a}] [${APP_NAME}] %logger{36} - %msg%n%ex"/>
+
+    <!-- ── Console Appender ────────────────────────────────────────────────── -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-    </root>
+    <!-- ── Rolling File Appender ──────────────────────────────────────────── -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${APP_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ── Async wrapper for FILE (prevents I/O blocking the request thread) -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <!-- ── Logger tuning ──────────────────────────────────────────────────── -->
+    <!-- Suppress verbose Spring Cloud / Netty internals -->
+    <logger name="reactor.netty"                     level="WARN"/>
+    <logger name="io.netty"                          level="WARN"/>
+    <logger name="io.micrometer"                     level="WARN"/>
+    <logger name="org.springframework.cloud.gateway" level="WARN"/>
+    <logger name="com.netflix"                       level="WARN"/>
+    <!-- Rate-limiter Redis debug calls — noisy at DEBUG -->
+    <logger name="org.springframework.data.redis"    level="INFO"/>
+
+    <!-- Application — DEBUG so filter log lines are always visible -->
+    <logger name="com.ecommerce.gateway"             level="DEBUG"/>
+
+    <!-- ── Root / profile-specific active appenders ───────────────────────── -->
+    <springProfile name="local,default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!local &amp; !default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
 </configuration>

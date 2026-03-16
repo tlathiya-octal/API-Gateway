@@ -18,7 +18,7 @@ public class CorsConfig {
         cors.setAllowedOriginPatterns(Arrays.asList("*"));
         cors.setAllowedHeaders(Arrays.asList("*"));
         cors.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setExposedHeaders(Arrays.asList("X-Correlation-Id"));
+        cors.setExposedHeaders(Arrays.asList("X-Correlation-ID"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);

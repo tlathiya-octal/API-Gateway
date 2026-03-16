@@ -13,8 +13,8 @@ spring:
   cloud:
     gateway:
       httpclient:
-        connect-timeout: 2000
-        response-timeout: 5s
+        connect-timeout: 5000
+        response-timeout: 30s
       metrics:
         enabled: true
     loadbalancer:
@@ -41,9 +41,10 @@ spring:
 
 security:
   jwt:
-    secret: ${JWT_SECRET:dev-secret-change-me}
+    # MUST match jwt.secret in auth-service exactly — both services must share the same signing key
+    secret: ${JWT_SECRET:CHANGE_ME_SUPER_SECRET_KEY_32_CHARS_MIN}
     jwk-set-uri: ${JWT_JWK_SET_URI:}
-    issuer: ${JWT_ISSUER:}
+    issuer: ${JWT_ISSUER:auth-service}
   public-paths: /api/auth/**,/auth/**,/actuator/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**,/fallback/**
 
 gateway:
@@ -90,5 +91,26 @@ management:
 logging:
   level:
     root: INFO
-    org.springframework.cloud.gateway: INFO
-    com.ecommerce.gateway: INFO
+    com.ecommerce.gateway: DEBUG
+    org.springframework.cloud.gateway: WARN
+    reactor.netty: WARN
+    io.micrometer: WARN
+  # logback-spring.xml handles pattern and file rolling
+  # Set LOG_FILE env var to override log directory (default: ./logs/api-gateway.log)
+
+# ── Resilience4j circuit breaker config ──
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 30s
