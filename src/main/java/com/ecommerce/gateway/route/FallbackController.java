@@ -30,3 +30,5 @@ import org.springframework.web.server.ServerWebExchange;
 //        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
 //    }
 //}
+public class FallbackController {
+}
