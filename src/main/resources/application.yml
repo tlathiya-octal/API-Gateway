@@ -42,9 +42,9 @@ spring:
 security:
   jwt:
     # MUST match jwt.secret in auth-service exactly — both services must share the same signing key
-    secret: ${JWT_SECRET:CHANGE_ME_SUPER_SECRET_KEY_32_CHARS_MIN}
+    secret: ${JWT_SECRET:mySuperSecretJwtKey12345678901234567890}
     jwk-set-uri: ${JWT_JWK_SET_URI:}
-    issuer: ${JWT_ISSUER:auth-service}
+    issuer: ${JWT_ISSUER:ecommerce-auth-service}
   public-paths: /api/auth/**,/auth/**,/actuator/**,/swagger-ui/**,/swagger-ui.html,/v3/api-docs/**,/fallback/**
 
 gateway:
@@ -69,9 +69,9 @@ springdoc:
     path: /swagger-ui
     urls:
       - name: auth-service
-        url: /auth/v3/api-docs
+        url: /api/auth/v3/api-docs
       - name: user-service
-        url: /users/v3/api-docs
+        url: /api/users/v3/api-docs
 
 
 management:

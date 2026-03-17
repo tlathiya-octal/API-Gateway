@@ -53,11 +53,11 @@ public class RbacAuthorizationFilter implements GlobalFilter, Ordered {
                         .stream()
                         .anyMatch(r -> r.equalsIgnoreCase(role) || role.equalsIgnoreCase("ROLE_" + r));
 
-                if (!allowed) {
-                    return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden: insufficient role"));
-                }
+				if (!allowed) {
+					return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,
+							"Insufficient Role Permission:- You don't have permission to see"));
+				}
 
-                // IMPORTANT: stop after first matched rule
                 return chain.filter(exchange);
             }
         }

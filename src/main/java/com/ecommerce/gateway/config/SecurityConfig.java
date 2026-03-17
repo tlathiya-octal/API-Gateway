@@ -44,7 +44,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
                                                          ServerAuthenticationEntryPoint authenticationEntryPoint,
                                                          ServerAccessDeniedHandler accessDeniedHandler) {
-        return http
+    	SecurityWebFilterChain webFilter  = http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(PUBLIC_PATHS).permitAll()
@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .build();
+    	return webFilter;
     }
 
     @Bean
